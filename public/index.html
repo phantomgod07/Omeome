@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Random Text Chat</title>
+<link rel="manifest" href="/manifest.json">
+<style>
+  body { font-family: Arial; padding: 20px; }
+  #chat { border: 1px solid #ccc; height: 300px; overflow-y: auto; padding: 10px; margin-bottom: 10px; }
+  #message { width: 80%; }
+</style>
+</head>
+<body>
+<h1>Random Text Chat</h1>
+<button id="start">Start Chat</button>
+<button id="next" disabled>Next</button>
+<div id="chat"></div>
+<input id="message" type="text" placeholder="Type a message" disabled />
+<button id="send" disabled>Send</button>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+let currentRoom = null;
+
+document.getElementById('start').onclick = () => {
+  socket.emit('startChat');
+  document.getElementById('start').disabled = true;
+  document.getElementById('chat').innerHTML = 'Waiting for a partner...';
+};
+
+document.getElementById('next').onclick = () => {
+  socket.emit('startChat');
+  document.getElementById('chat').innerHTML = 'Waiting for a partner...';
+  document.getElementById('message').disabled = true;
+  document.getElementById('send').disabled = true;
+  document.getElementById('next').disabled = true;
+};
+
+document.getElementById('send').onclick = () => {
+  const msg = document.getElementById('message').value.trim();
+  if (!msg || !currentRoom) return;
+  appendMessage(`You: ${msg}`);
+  socket.emit('message', { room: currentRoom, msg });
+  document.getElementById('message').value = '';
+};
+
+socket.on('chatStarted', ({ room }) => {
+  currentRoom = room;
+  document.getElementById('chat').innerHTML = '';
+  document.getElementById('message').disabled = false;
+  document.getElementById('send').disabled = false;
+  document.getElementById('next').disabled = false;
+  appendMessage('Connected! Say hi 👋');
+});
+
+socket.on('message', (msg) => appendMessage(`Stranger: ${msg}`));
+
+function appendMessage(msg) {
+  const p = document.createElement('p');
+  p.textContent = msg;
+  document.getElementById('chat').appendChild(p);
+  document.getElementById('chat').scrollTop = document.getElementById('chat').scrollHeight;
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').then(() => console.log('Service Worker registered'));
+}
+</script>
+</body>
+</html>
